@@ -1,14 +1,64 @@
 // initialize empty array
 const arr = [];
 
-const inputElement = document.getElementById("myInput");
-const addBtn = document.getElementById("addTask");
-const taskList = document.getElementById("taskList");
+const inputElement = document.querySelector("input");
+const addBtn = document.querySelector("#addTask");
+const taskList = document.querySelector("#taskList");
 
-//check
+const renderFromLocalStorage = () => {
+  const storedData = localStorage.getItem("todo");
 
+  if (storedData) {
+    const todoItems = JSON.parse(storedData);
+
+    todoItems.forEach((e) => {
+      const li = document.createElement("li");
+      li.textContent = e.text;
+
+      const crossIcon = document.createElement("i");
+      crossIcon.innerHTML = "✖";
+      crossIcon.className = "crossIcon";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "checkbox";
+      checkbox.checked = e.isChecked;
+
+      checkbox.addEventListener("change", () => {
+        e.isChecked = checkbox.checked;
+        localStorage.setItem("todo", JSON.stringify(todoItems));
+        li.style.textDecoration = checkbox.checked ? "line-through" : "none";
+      });
+
+      if (e.isChecked) {
+        checkbox.checked = true;
+        li.style.textDecoration = "line-through";
+      }
+
+      crossIcon.addEventListener("click", () => {
+        const indexToDelete = todoItems.findIndex((item) => item.id == e.id);
+
+        if (indexToDelete !== -1) {
+          todoItems.splice(indexToDelete, 1);
+          localStorage.setItem("todo", JSON.stringify(todoItems));
+          li.remove();
+        }
+      });
+
+      li.appendChild(checkbox);
+      li.appendChild(crossIcon);
+
+      taskList.appendChild(li);
+    });
+  } else {
+    console.log("No todo items found in localStorage.");
+  }
+};
+
+renderFromLocalStorage();
+
+//only for testing purpose
 const checkbtn = document.getElementById("checkbtn");
-
 checkbtn.addEventListener("click", function (e) {
   e.preventDefault();
   console.log(arr);
@@ -19,93 +69,91 @@ addBtn.addEventListener("click", (e) => {
   handleFormAction();
 });
 
-inputElement.addEventListener("keypress", (e) => {
-  // Check if the pressed key is Enter
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleFormAction();
-  }
-});
-
-function handleFormAction() {
+const handleFormAction = () => {
   //check if user click with mouse or pad
   if (inputElement.value !== "") {
     add();
-    render();
   } else {
-    alert("enter value");
+    alert("Enter Some text in input field ");
   }
-}
+};
 
-function add() {
-  arr.push({
+const add = () => {
+  const newElement = {
     text: inputElement.value,
     isChecked: false,
     id: Date.now(),
-  });
+  };
 
-  render();
-}
+  arr.push(newElement);
 
-function render() {
-  // Clear the existing content of ul
-  taskList.innerHTML = "";
+  localStorage.setItem("todo", JSON.stringify(arr));
+  render(newElement);
+};
 
-  arr.forEach((e) => {
-    const li = document.createElement("li");
-    li.textContent = e.text;
+const render = (newElement) => {
+  const li = document.createElement("li");
+  li.textContent = newElement.text;
 
-    // Icon
-    const crossIcon = document.createElement("i");
-    crossIcon.innerHTML = "✖";
-    crossIcon.className = "crossIcon";
+  // Icon
+  const crossIcon = document.createElement("i");
+  crossIcon.innerHTML = "✖";
+  crossIcon.className = "crossIcon";
+  crossIcon.setAttribute("x-id", newElement.id);
 
-    crossIcon.addEventListener("click", handleDelete);
-    crossIcon.setAttribute("x-id", e.id);
+  // Checkbox
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "checkbox";
+  checkbox.setAttribute("c-id", newElement.id);
 
-    // Checkbox
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.className = "checkbox";
-    checkbox.addEventListener("change", handleCheckboxChange);
-    checkbox.setAttribute("c-id", e.id);
+  if (newElement.isChecked) {
+    checkbox.checked = true;
+    li.style.textDecoration = "line-through";
+  }
 
-    if (e.isChecked) {
-      checkbox.checked = true;
-    }
+  li.appendChild(checkbox);
+  li.appendChild(crossIcon);
 
-    li.appendChild(checkbox);
-    li.appendChild(crossIcon);
-
-    // Append the new list item to the taskList
-    taskList.appendChild(li);
-  });
-
+  taskList.appendChild(li);
   inputElement.value = "";
-}
+};
 
-function handleDelete(event) {
+taskList.addEventListener("click", (e) => {
+  const target = e.target;
+  if (target.classList.contains("checkbox")) {
+    handleCheckboxChange(e);
+  } else if (target.classList.contains("crossIcon")) {
+    handleDelete(e);
+  }
+});
+
+const handleDelete = (event) => {
   const clickedId = event.target.getAttribute("x-id");
-  arr.forEach((item, index, arr) => {
-    if (item.id == clickedId) {
-      arr.splice(index, 1);
-      // event.target.parentNode.remove();
-    }
-  });
-  render();
-}
+  const indexToDelete = arr.findIndex((item) => item.id == clickedId);
 
-function handleCheckboxChange(event) {
+  if (indexToDelete !== -1) {
+    arr.splice(indexToDelete, 1);
+    event.target.parentNode.remove();
+    localStorage.setItem("todo", JSON.stringify(arr));
+  }
+};
+
+const handleCheckboxChange = (event) => {
   const checkbox = event.target;
   const clickedId = event.target.getAttribute("c-id");
 
-  arr.forEach((item, index, arr) => {
-    if (item.id == clickedId && checkbox.checked) {
+  const foundItem = arr.find((item) => item.id == clickedId);
+
+  if (foundItem) {
+    const index = arr.indexOf(foundItem);
+    if (checkbox.checked) {
       event.target.parentNode.style.textDecoration = "line-through";
       arr[index].isChecked = true;
-    } else if (!checkbox.checked) {
+    } else {
       arr[index].isChecked = false;
       event.target.parentNode.style.textDecoration = "none";
     }
-  });
-}
+    localStorage.setItem("todo", JSON.stringify(arr));
+  }
+};
